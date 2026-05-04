@@ -6475,6 +6475,135 @@ body.no-meta .group-divider { padding-bottom: 12px; }
   .toc-h { flex-direction: column; gap: 12px; }
   .toc-groups { grid-template-columns: 1fr; }
 }
+
+
+
+
+
+/* === DEMO MODE START === */
+/* v23.3 · Демо-режим (?demo=1) — приложение на весь viewport */
+body.demo-mode {
+  padding: 0;
+  background: #1a1a1a;
+  min-height: 100vh;
+  overflow: hidden;
+}
+body.demo-mode .page-h,
+body.demo-mode .toc,
+body.demo-mode .group-divider,
+body.demo-mode .audit-note,
+body.demo-mode .fab-toc {
+  display: none !important;
+}
+body.demo-mode .grid {
+  display: block;
+  margin: 0;
+  max-width: none;
+  padding: 0;
+}
+body.demo-mode .screen {
+  display: none;
+}
+body.demo-mode .screen.is-active {
+  display: flex !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: 100vh !important;
+  margin: 44px 0 0 !important;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding-top: 0 !important;
+}
+body.demo-mode .screen .label {
+  display: none !important;
+}
+
+@media (min-width: 480px) {
+  body.demo-mode .screen.is-active {
+    width: 380px !important;
+    max-width: 380px !important;
+    min-height: calc(100vh - 80px) !important;
+    height: calc(100vh - 80px) !important;
+    margin: 60px auto 20px !important;
+    border-radius: 32px !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5) !important;
+    overflow: hidden !important;
+  }
+}
+
+.demo-bar { display: none; }
+body.demo-mode .demo-bar {
+  display: flex;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 44px;
+  background: rgba(20,20,20,0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #f0f0f0;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  z-index: 1000;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.demo-bar .demo-side {
+  display: flex;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+.demo-bar .demo-title {
+  flex: 1;
+  text-align: center;
+  font-weight: 500;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 8px;
+  letter-spacing: 0.02em;
+}
+.demo-bar button {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-size: 14px;
+  font-family: inherit;
+  padding: 6px 10px;
+  cursor: pointer;
+  border-radius: 6px;
+  min-width: 32px;
+}
+.demo-bar button:hover {
+  background: rgba(255,255,255,0.1);
+}
+.demo-bar button:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+body.demo-mode [data-go],
+body.demo-mode .nav > div,
+body.demo-mode .profile-row,
+body.demo-mode .liquid-quick-btn,
+body.demo-mode .meal-add,
+body.demo-mode .meal-header,
+body.demo-mode .action-btn,
+body.demo-mode .cat-tab,
+body.demo-mode .liquid-cat-tab,
+body.demo-mode .diet-row,
+body.demo-mode .symptom-tab-row > *,
+body.demo-mode .back,
+body.demo-mode .diag-info-btn,
+body.demo-mode .info-btn {
+  cursor: pointer;
+}
+/* === DEMO MODE END === */
 </style>
 </head>
 <body>
@@ -11775,6 +11904,464 @@ body.no-meta .group-divider { padding-bottom: 12px; }
     window.addEventListener('scroll', onScroll, { passive: true });
   }
 })();
+
+
+
+
+
+// === DEMO MODE START ===
+
+(function () {
+  const params = new URLSearchParams(location.search);
+  if (params.get('demo') !== '1') return;
+
+  const body = document.body;
+  body.classList.add('demo-mode', 'no-meta');
+
+  // --- Multi-state пары ---
+  const PAIRS = {
+    'screen-04': 'screen-05',
+    'screen-05': 'screen-04',
+    'screen-29': 'screen-30',
+    'screen-30': 'screen-29',
+    'screen-33': 'screen-34',
+    'screen-34': 'screen-33',
+    'screen-38': 'screen-39',
+    'screen-39': 'screen-38',
+    'screen-47': 'screen-48',
+    'screen-48': 'screen-47',
+    'screen-57': 'screen-58',
+    'screen-58': 'screen-57',
+  };
+
+  // --- Bottom-nav ---
+  const NAV_MAP = {
+    'Сегодня':  'screen-04',
+    'Симптомы': 'screen-18',
+    'Похудение':'screen-22',
+    'Профиль':  'screen-25',
+  };
+
+  // --- Утилиты ---
+  function setGo(el, target) {
+    if (el && !el.dataset.go) el.dataset.go = target;
+  }
+  function findButtonByText(scope, regex) {
+    return Array.from(scope.querySelectorAll('button, .btn, .btn-primary, .btn-secondary, .action-btn, .btn-ghost, .btn-icon-pill')).filter(b => regex.test(b.textContent.replace(/\s+/g, ' ').trim()));
+  }
+  function wireCatTabs(s) {
+    s.querySelectorAll('.cat-tab').forEach(t => {
+      const text = t.textContent.replace(/\s+/g, ' ').trim();
+      const m = {
+        'Еда':         'screen-09',
+        'Недавние':    'screen-10',
+        'Сохранённое': 'screen-11',
+        'Добавить':    'screen-16',
+        'Калькулятор': 'screen-17',
+      };
+      if (m[text]) setGo(t, m[text]);
+    });
+  }
+  function wireLiquidTabs(s, currentId) {
+    s.querySelectorAll('.liquid-cat-tab').forEach(t => {
+      const text = t.textContent.trim();
+      if (text === 'Вода' && currentId !== 'screen-44') setGo(t, 'screen-44');
+      else if (text === 'Чай' && currentId !== 'screen-45') setGo(t, 'screen-45');
+      else if (text === 'Кофе' && currentId !== 'screen-46') setGo(t, 'screen-46');
+    });
+  }
+
+  // --- Прошивка переходов ПО ЭКРАНАМ ---
+  const SCREEN_WIRING = {
+    'screen-01': (s) => {
+      findButtonByText(s, /^Готово$/).forEach(b => setGo(b, 'screen-04'));
+      findButtonByText(s, /Заполнить позже/).forEach(b => setGo(b, 'screen-04'));
+    },
+    'screen-02': (s) => {
+      findButtonByText(s, /^Сохранить$/).forEach(b => setGo(b, 'back'));
+    },
+    'screen-04': (s) => {
+      s.querySelectorAll('.meal-add').forEach(b => setGo(b, 'screen-09'));
+      s.querySelectorAll('.meal-header').forEach(b => setGo(b, 'screen-07'));
+      findButtonByText(s, /^\+\s*Добавить приём/).forEach(b => setGo(b, 'screen-09'));
+      s.querySelectorAll('.liquid-quick-btn').forEach(btn => {
+        const txt = btn.textContent;
+        if (txt.includes('Вода')) setGo(btn, 'screen-44');
+        else if (txt.includes('Чай')) setGo(btn, 'screen-45');
+        else if (txt.includes('Кофе')) setGo(btn, 'screen-46');
+      });
+      s.querySelectorAll('.action-btn').forEach(b => {
+        const t = b.textContent.trim();
+        if (t.includes('Сохранить в меню')) setGo(b, 'screen-11');
+        else if (t.includes('Экспорт'))     setGo(b, 'screen-49');
+      });
+    },
+    'screen-05': (s) => {
+      SCREEN_WIRING['screen-04'](s);
+      s.querySelectorAll('.info-row, .info-sub-row').forEach(b => setGo(b, 'screen-06'));
+    },
+    'screen-06': (s) => {
+      findButtonByText(s, /^Сохранить лимит/).forEach(b => setGo(b, 'back'));
+    },
+    'screen-07': (s) => {
+      findButtonByText(s, /^Сохранить$/).forEach(b => setGo(b, 'back'));
+      findButtonByText(s, /^Закрыть$/).forEach(b => setGo(b, 'back'));
+      s.querySelectorAll('.gi-info, [class*="gi-info"], .info-btn').forEach(b => setGo(b, 'screen-08'));
+    },
+    'screen-09': (s) => wireCatTabs(s),
+    'screen-10': (s) => wireCatTabs(s),
+    'screen-11': (s) => {
+      wireCatTabs(s);
+      s.querySelectorAll('.sub-tab, .sub-tabs > *').forEach(b => {
+        const t = b.textContent.trim();
+        if (t.startsWith('Мои')) setGo(b, 'screen-11');
+        else if (t.startsWith('Загруженные')) setGo(b, 'screen-12');
+      });
+      findButtonByText(s, /Применить весь день/).forEach(b => setGo(b, 'screen-15'));
+      findButtonByText(s, /Применить выбранное/).forEach(b => setGo(b, 'back'));
+    },
+    'screen-12': (s) => {
+      wireCatTabs(s);
+      s.querySelectorAll('.sub-tab, .sub-tabs > *').forEach(b => {
+        const t = b.textContent.trim();
+        if (t.startsWith('Мои')) setGo(b, 'screen-11');
+        else if (t.startsWith('Загруженные')) setGo(b, 'screen-12');
+      });
+    },
+    'screen-13': (s) => {
+      findButtonByText(s, /^Применить$/).forEach(b => setGo(b, 'back'));
+    },
+    'screen-14': (s) => {
+      findButtonByText(s, /^Удалить$/).forEach(b => setGo(b, 'back'));
+    },
+    'screen-15': (s) => {
+      findButtonByText(s, /^Заменить$/).forEach(b => setGo(b, 'screen-04'));
+    },
+    'screen-16': (s) => {
+      wireCatTabs(s);
+      findButtonByText(s, /Сохранить продукт/).forEach(b => setGo(b, 'back'));
+    },
+    'screen-17': (s) => {
+      wireCatTabs(s);
+      findButtonByText(s, /Сохранить как продукт/).forEach(b => setGo(b, 'back'));
+    },
+    'screen-18': (s) => {
+      s.querySelectorAll('.day-btn, .date-header, .symp-date').forEach(b => setGo(b, 'screen-20'));
+      findButtonByText(s, /История|Полная|Полная история/).forEach(b => setGo(b, 'screen-19'));
+      findButtonByText(s, /^Сохранить$/).forEach(b => {
+        b.dataset.go = 'toast';
+        b.dataset.toast = 'Сохранено';
+      });
+    },
+    'screen-19': (s) => {
+      s.querySelectorAll('.symptom-tab-row > *, .filter-chip, .chip').forEach(b => {
+        if (b.textContent.trim() === 'Свой') setGo(b, 'screen-21');
+      });
+    },
+    'screen-20': (s) => {
+      findButtonByText(s, /К сегодняшнему дню/).forEach(b => setGo(b, 'back'));
+      s.querySelectorAll('.cal-day, .day-cell').forEach(b => setGo(b, 'back'));
+    },
+    'screen-21': (s) => {
+      findButtonByText(s, /^Применить$/).forEach(b => setGo(b, 'back'));
+    },
+    'screen-22': (s) => {
+      s.querySelectorAll('.weight-card, .wt-card, [data-weight]').forEach(b => setGo(b, 'screen-23'));
+      findButtonByText(s, /Рекомендованное меню/).forEach(b => setGo(b, 'screen-11'));
+      s.querySelectorAll('.phase-card, .ph-card').forEach(b => {
+        if (b.textContent.includes('Фаза 1')) setGo(b, 'screen-24');
+      });
+    },
+    'screen-23': (s) => {
+      findButtonByText(s, /^Сохранить$/).forEach(b => setGo(b, 'back'));
+    },
+    'screen-24': (s) => {
+      findButtonByText(s, /^Открыть в AI$/).forEach(b => setGo(b, 'screen-53'));
+    },
+    'screen-25': (s) => {
+      s.querySelectorAll('.profile-row').forEach(row => {
+        const name = row.querySelector('.pname');
+        if (!name) return;
+        const t = name.textContent.trim();
+        const m = {
+          'Здоровье':      'screen-27',
+          'Личное':        'screen-26',
+          'Лекарства':     'screen-28',
+          'Архив файлов':  'screen-29',
+          'Настройки':     'screen-31',
+          'Аккаунт':       'screen-33',
+          'Похудение':     'screen-22',
+        };
+        if (m[t]) setGo(row, m[t]);
+      });
+    },
+    'screen-26': (s) => {
+      findButtonByText(s, /^Сохранить$/).forEach(b => setGo(b, 'back'));
+    },
+    'screen-27': (s) => {
+      s.querySelectorAll('.diag-info-btn, .info-btn').forEach(b => setGo(b, 'screen-35'));
+      findButtonByText(s, /Выбрать диету/).forEach(b => setGo(b, 'screen-37'));
+      findButtonByText(s, /^Сохранить$/).forEach(b => setGo(b, 'back'));
+    },
+    'screen-28': (s) => {
+      findButtonByText(s, /^Сохранить$/).forEach(b => setGo(b, 'back'));
+    },
+    'screen-29': (s) => {
+      findButtonByText(s, /Очистить архив/).forEach(b => setGo(b, 'screen-36'));
+      findButtonByText(s, /Открыть файл/).forEach(b => setGo(b, 'screen-55'));
+    },
+    'screen-30': (s) => {
+      findButtonByText(s, /Открыть файл/).forEach(b => setGo(b, 'screen-55'));
+    },
+    'screen-31': (s) => {
+      s.querySelectorAll('.profile-row, .settings-row').forEach(row => {
+        const name = row.querySelector('.pname, .name');
+        const t = name ? name.textContent.trim() : row.textContent.trim();
+        if (t.includes('Уведомления')) setGo(row, 'screen-32');
+      });
+    },
+    'screen-33': (s) => {
+      findButtonByText(s, /Удалить аккаунт/).forEach(b => setGo(b, 'screen-41'));
+      findButtonByText(s, /^Выйти$/).forEach(b => { b.dataset.go = 'screen-34'; });
+    },
+    'screen-34': (s) => {
+      findButtonByText(s, /Удалить аккаунт/).forEach(b => setGo(b, 'screen-41'));
+      findButtonByText(s, /^Выйти$/).forEach(b => setGo(b, 'screen-43'));
+    },
+    'screen-36': (s) => {
+      findButtonByText(s, /Очистить/).forEach(b => setGo(b, 'screen-30'));
+    },
+    'screen-37': (s) => {
+      s.querySelectorAll('.diet-row').forEach(row => {
+        const t = row.textContent.replace(/\s+/g, ' ');
+        if (t.includes('Своя'))         setGo(row, 'screen-40');
+        else if (t.includes('Формула 31')) setGo(row, 'screen-39');
+        else                            setGo(row, 'screen-38');
+      });
+    },
+    'screen-38': (s) => {
+      findButtonByText(s, /Активировать/).forEach(b => { b.dataset.go = 'screen-39'; });
+    },
+    'screen-39': (s) => {
+      findButtonByText(s, /Деактивировать/).forEach(b => { b.dataset.go = 'screen-38'; });
+    },
+    'screen-40': (s) => {
+      findButtonByText(s, /Сохранить и активировать/).forEach(b => setGo(b, 'screen-37'));
+      findButtonByText(s, /Удалить диету/).forEach(b => setGo(b, 'screen-37'));
+    },
+    'screen-41': (s) => {
+      findButtonByText(s, /Отправить письмо/).forEach(b => setGo(b, 'screen-42'));
+      findButtonByText(s, /Скачать архив/).forEach(b => setGo(b, 'screen-49'));
+    },
+    'screen-42': (s) => {
+      findButtonByText(s, /На главную/).forEach(b => setGo(b, 'screen-43'));
+    },
+    'screen-43': (s) => {
+      findButtonByText(s, /Начать заново/).forEach(b => setGo(b, 'screen-04'));
+      findButtonByText(s, /Импортировать/).forEach(b => setGo(b, 'screen-56'));
+    },
+    'screen-44': (s) => wireLiquidTabs(s, 'screen-44'),
+    'screen-45': (s) => wireLiquidTabs(s, 'screen-45'),
+    'screen-46': (s) => {
+      wireLiquidTabs(s, 'screen-46');
+      // "+ свой" в M4 → M4.1
+      findButtonByText(s, /^\+\s*свой/i).forEach(b => setGo(b, 'screen-47'));
+    },
+    'screen-47': () => {},
+    'screen-48': (s) => {
+      findButtonByText(s, /^Сохранить$/).forEach(b => setGo(b, 'screen-46'));
+    },
+    'screen-49': (s) => {
+      findButtonByText(s, /Скачать файл/).forEach(b => setGo(b, 'screen-52'));
+      s.querySelectorAll('.export-tab, .ex-tab').forEach(b => {
+        if (b.textContent.includes('Для печати')) setGo(b, 'screen-50');
+      });
+    },
+    'screen-50': (s) => {
+      findButtonByText(s, /Скачать PDF/).forEach(b => setGo(b, 'screen-52'));
+      s.querySelectorAll('.export-tab, .ex-tab').forEach(b => {
+        if (b.textContent.includes('Для ИИ')) setGo(b, 'screen-49');
+      });
+    },
+    'screen-51': (s) => {
+      findButtonByText(s, /^Применить$/).forEach(b => setGo(b, 'back'));
+    },
+    'screen-52': (s) => {
+      findButtonByText(s, /^Сохранить$/).forEach(b => setGo(b, 'back'));
+    },
+    'screen-53': (s) => {
+      findButtonByText(s, /Понял, продолжить/).forEach(b => setGo(b, 'screen-52'));
+    },
+    'screen-55': (s) => {
+      findButtonByText(s, /Сохранить в Сохранённое/).forEach(b => setGo(b, 'screen-11'));
+      findButtonByText(s, /Применить к Сегодня/).forEach(b => setGo(b, 'screen-15'));
+      findButtonByText(s, /^Закрыть$/).forEach(b => setGo(b, 'back'));
+    },
+    'screen-56': (s) => {
+      findButtonByText(s, /Сохранить в Архив/).forEach(b => setGo(b, 'screen-29'));
+      findButtonByText(s, /^Закрыть$/).forEach(b => setGo(b, 'back'));
+    },
+    'screen-57': (s) => {
+      findButtonByText(s, /^Закрыть$/).forEach(b => setGo(b, 'back'));
+    },
+    'screen-58': (s) => {
+      findButtonByText(s, /Продолжить/).forEach(b => setGo(b, 'back'));
+      findButtonByText(s, /^Закрыть$/).forEach(b => setGo(b, 'back'));
+    },
+  };
+
+  // --- Demo bar ---
+  const bar = document.createElement('div');
+  bar.className = 'demo-bar';
+  bar.innerHTML =
+    '<div class="demo-side">' +
+      '<button id="demo-back" title="Назад">←</button>' +
+      '<button id="demo-home" title="На главный">⌂</button>' +
+    '</div>' +
+    '<div class="demo-title" id="demo-title">…</div>' +
+    '<div class="demo-side">' +
+      '<button id="demo-state" title="Альтернативное состояние" style="display:none">⇄</button>' +
+      '<button id="demo-exit" title="Выйти из демо">✕</button>' +
+    '</div>';
+  document.body.insertBefore(bar, document.body.firstChild);
+
+  // --- Стек истории ---
+  const stack = [];
+
+  // --- Прошить bottom-nav ---
+  document.querySelectorAll('.nav').forEach(nav => {
+    nav.querySelectorAll(':scope > div').forEach(item => {
+      const text = item.textContent.replace(/\s+/g, ' ').trim();
+      if (NAV_MAP[text]) item.dataset.go = NAV_MAP[text];
+    });
+  });
+
+  // --- Прошить переходы внутри экранов ---
+  document.querySelectorAll('.screen').forEach(screen => {
+    const id = screen.id;
+    // Универсальные правила
+    screen.querySelectorAll('.back').forEach(b => { b.dataset.go = 'back'; });
+    screen.querySelectorAll('button, .btn, .btn-primary, .btn-secondary, .btn-ghost, .btn-icon-pill, .action-btn').forEach(b => {
+      const t = b.textContent.replace(/\s+/g, ' ').trim();
+      if (/^(Закрыть|Понятно|Понял|Понял, продолжить|Отмена)$/.test(t)) {
+        if (!b.dataset.go) b.dataset.go = 'back';
+      }
+      if (t === '🤖 Открыть в AI' || t === 'Открыть в AI') {
+        if (!b.dataset.go) b.dataset.go = 'screen-53';
+      }
+      if (t === '📋 Скопировать' || t === '⎘ Скопировать') {
+        if (!b.dataset.go) {
+          b.dataset.go = 'toast';
+          b.dataset.toast = 'Скопировано';
+        }
+      }
+    });
+    // Per-screen правила
+    const rule = SCREEN_WIRING[id];
+    if (rule) rule(screen);
+  });
+
+  // --- Click handler ---
+  document.addEventListener('click', e => {
+    if (e.target.closest('.demo-bar')) return;
+    const el = e.target.closest('[data-go]');
+    if (!el) return;
+    e.preventDefault();
+    const target = el.dataset.go;
+    if (target === 'back')      goBack();
+    else if (target === 'home') navigate('screen-04');
+    else if (target === 'toast') showToast(el.dataset.toast || 'Готово');
+    else if (target.startsWith('screen-')) navigate(target);
+  });
+
+  document.getElementById('demo-back').addEventListener('click', goBack);
+  document.getElementById('demo-home').addEventListener('click', () => navigate('screen-04'));
+  document.getElementById('demo-exit').addEventListener('click', () => {
+    location.href = location.pathname;
+  });
+  document.getElementById('demo-state').addEventListener('click', () => {
+    const cur = current();
+    if (PAIRS[cur]) navigate(PAIRS[cur], { state: true });
+  });
+
+  window.addEventListener('hashchange', () => {
+    const id = (location.hash || '#screen-04').slice(1);
+    if (id !== current()) navigate(id, { fromHash: true });
+  });
+
+  // --- Старт ---
+  const startId = (location.hash || '#screen-04').slice(1);
+  navigate(startId, { initial: true });
+
+  // ============== Функции навигации ==============
+
+  function current() {
+    const a = document.querySelector('.screen.is-active');
+    return a ? a.id : null;
+  }
+
+  function navigate(id, opts) {
+    opts = opts || {};
+    const target = document.getElementById(id);
+    if (!target) {
+      console.warn('Demo: screen not found:', id);
+      return;
+    }
+    const cur = current();
+    if (cur === id) return;
+
+    document.querySelectorAll('.screen.is-active').forEach(s => s.classList.remove('is-active'));
+    target.classList.add('is-active');
+
+    const content = target.querySelector('.content');
+    if (content) content.scrollTop = 0;
+    target.scrollTop = 0;
+    window.scrollTo(0, 0);
+
+    if (cur && !opts.initial && !opts.fromBack && !opts.state && !opts.fromHash) {
+      stack.push(cur);
+    }
+
+    history.replaceState({}, '', '?demo=1#' + id);
+    updateBar(id);
+  }
+
+  function goBack() {
+    if (stack.length === 0) return;
+    const prev = stack.pop();
+    navigate(prev, { fromBack: true });
+  }
+
+  function updateBar(id) {
+    const screen = document.getElementById(id);
+    if (!screen) return;
+    const label = screen.querySelector('.label');
+    document.getElementById('demo-title').textContent = label ? label.textContent.trim() : id;
+    document.getElementById('demo-state').style.display = PAIRS[id] ? '' : 'none';
+    document.getElementById('demo-back').disabled = stack.length === 0;
+    const navName = Object.entries(NAV_MAP).find(([_, sid]) => sid === id);
+    document.querySelectorAll('.nav > div').forEach(it => {
+      const t = it.textContent.replace(/\s+/g, ' ').trim();
+      it.classList.toggle('active', !!navName && t === navName[0]);
+    });
+  }
+
+  function showToast(text) {
+    let t = document.getElementById('demo-toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'demo-toast';
+      t.style.cssText = 'position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;z-index:2000;opacity:0;transition:opacity 0.2s;';
+      document.body.appendChild(t);
+    }
+    t.textContent = text;
+    t.style.opacity = '1';
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => { t.style.opacity = '0'; }, 1800);
+  }
+})();
+
+// === DEMO MODE END ===
 </script>
 </body>
 </html>
