@@ -6480,6 +6480,9 @@ body.no-meta .group-divider { padding-bottom: 12px; }
 
 
 
+
+
+
 /* === DEMO MODE START === */
 /* v23.3 · Демо-режим (?demo=1) — приложение на весь viewport */
 body.demo-mode {
@@ -11909,6 +11912,9 @@ body.demo-mode .info-btn {
 
 
 
+
+
+
 // === DEMO MODE START ===
 
 (function () {
@@ -12066,11 +12072,17 @@ body.demo-mode .info-btn {
       findButtonByText(s, /^Применить$/).forEach(b => setGo(b, 'back'));
     },
     'screen-22': (s) => {
-      s.querySelectorAll('.weight-card, .wt-card, [data-weight]').forEach(b => setGo(b, 'screen-23'));
-      findButtonByText(s, /Рекомендованное меню/).forEach(b => setGo(b, 'screen-11'));
-      s.querySelectorAll('.phase-card, .ph-card').forEach(b => {
-        if (b.textContent.includes('Фаза 1')) setGo(b, 'screen-24');
+      // Карточка веса (любой клик → screen-23 ввод веса)
+      s.querySelectorAll('.weight-card').forEach(b => setGo(b, 'screen-23'));
+      // Рекомендованное меню → S2 Сохранённое (с фильтром по диете)
+      s.querySelectorAll('.menu-cta-title, .menu-cta-sub').forEach(b => {
+        const parent = b.closest('[class*="menu-cta"], .menu-cta');
+        if (parent) setGo(parent, 'screen-11');
+        else setGo(b, 'screen-11');
       });
+      findButtonByText(s, /Рекомендованное меню/).forEach(b => setGo(b, 'screen-11'));
+      // Фаза 1 (current) → раскрытая. Остальные фазы — нет SCREEN (ref в карте)
+      s.querySelectorAll('.phase-card.current').forEach(b => setGo(b, 'screen-24'));
     },
     'screen-23': (s) => {
       findButtonByText(s, /^Сохранить$/).forEach(b => setGo(b, 'back'));
@@ -12109,6 +12121,13 @@ body.demo-mode .info-btn {
     'screen-29': (s) => {
       findButtonByText(s, /Очистить архив/).forEach(b => setGo(b, 'screen-36'));
       findButtonByText(s, /Открыть файл/).forEach(b => setGo(b, 'screen-55'));
+      // Карта 14_screens_map: тап на .saved-card → M11 (импорт данных)
+      s.querySelectorAll('.saved-card').forEach(c => setGo(c, 'screen-56'));
+      // .icon-btn 🤖 → M8 AI-warning; × и 📤 оставляем некликабельными
+      s.querySelectorAll('.icon-btn').forEach(b => {
+        const t = b.textContent.trim();
+        if (t === '🤖') setGo(b, 'screen-53');
+      });
     },
     'screen-30': (s) => {
       findButtonByText(s, /Открыть файл/).forEach(b => setGo(b, 'screen-55'));
@@ -12137,6 +12156,11 @@ body.demo-mode .info-btn {
         if (t.includes('Своя'))         setGo(row, 'screen-40');
         else if (t.includes('Формула 31')) setGo(row, 'screen-39');
         else                            setGo(row, 'screen-38');
+      });
+      // Карта 14_screens_map: × на чип-теге активной диеты → деактивация + toast
+      s.querySelectorAll('.chip.removable, .chip.active.removable').forEach(c => {
+        c.dataset.go = 'toast';
+        c.dataset.toast = 'Диета деактивирована';
       });
     },
     'screen-38': (s) => {
@@ -12190,7 +12214,9 @@ body.demo-mode .info-btn {
       findButtonByText(s, /^Сохранить$/).forEach(b => setGo(b, 'back'));
     },
     'screen-53': (s) => {
-      findButtonByText(s, /Понял, продолжить/).forEach(b => setGo(b, 'screen-52'));
+      // Карта 14_screens_map: M8 вызывается из 11 контекстов, "Понял, продолжить" должен возвращать
+      // откуда пришёл (через стек), а не на M7 (это правильно только для M6.1 → M8)
+      findButtonByText(s, /Понял, продолжить/).forEach(b => setGo(b, 'back'));
     },
     'screen-55': (s) => {
       findButtonByText(s, /Сохранить в Сохранённое/).forEach(b => setGo(b, 'screen-11'));
